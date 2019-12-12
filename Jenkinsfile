@@ -52,6 +52,21 @@ pipeline {
                 )
             }
         }
+        stage('SmokeTest') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    def response = httpRequest (
+                        url = "http://$KUBE_MASTER_IP:8081/",
+                        timeout: 30
+                    )
+                    if (response.status != 200) {
+                        error("Smoke tests failed. Deployment stopped")
+                    }
+                }
+        }
         stage('DeployToProduction') {
             when {
                 branch 'master'
@@ -60,7 +75,6 @@ pipeline {
                 CANARY_REPLICAS = 0
             }
             steps {
-                input 'Deploy to Production?'
                 milestone(1)
                 kubernetesDeploy(
                     kubeconfigId: 'kubeconfig',
